@@ -1,4 +1,11 @@
-import type { MetaFunction } from "@remix-run/node";
+import {
+  json,
+  type LoaderFunctionArgs,
+  type MetaFunction,
+} from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import dotenv from "dotenv";
+import Movie from "~/components/Movie";
 
 export const meta: MetaFunction = () => {
   return [
@@ -7,7 +14,37 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+export async function loader({
+  // Route loaders provide data to the UI
+  request,
+}: LoaderFunctionArgs) {
+  dotenv.config();
+  // const page = req.query.page;
+  const page = 1;
+  // console.log(process.env);
+  const url = `${process.env.BASE_URL}discover/movie?page=1&language=sv-SE&sort_by=popularity.desc&page=${page}`;
+  const options = {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      authorization: `Bearer ${process.env.TOKEN}`,
+    },
+  };
+  const response = await fetch(url, options);
+  if (response.status === 200) {
+    const result = await response.json();
+    console.log(result);
+    return json({
+      status: 200,
+      success: true,
+      message: "movies list is working!",
+      result: result,
+    });
+  }
+}
+
 export default function Index() {
+  const movies = useLoaderData<typeof loader>();
   return (
     <div
       className="p-4"
@@ -37,6 +74,13 @@ export default function Index() {
           </a>
         </li>
       </ul>
+      <div className="grid grid-cols-3 w-full">
+        {movies &&
+          movies.result.results.map((movie) => (
+            // here to prevent prettier from moving tag
+            <Movie movie={movie} />
+          ))}
+      </div>
     </div>
   );
 }
